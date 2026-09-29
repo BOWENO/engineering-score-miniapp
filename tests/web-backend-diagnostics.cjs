@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const ts=require('../admin-web/node_modules/typescript');
+const vue=require('../admin-web/node_modules/vue');
+const compile=s=>ts.transpileModule(s,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const filters={exports:{}};vm.runInNewContext(compile(fs.readFileSync('admin-web/src/scheduleFilters.ts','utf8')),filters);
+let calls=[];
+const api={apiGet:async url=>{calls.push({url,method:'GET'});return []},apiPost:async(url,body)=>{calls.push({url,body,method:'POST'});return {}}};
+const context={exports:{},URLSearchParams,location:{hash:''},localStorage:{getItem:()=>null},window:{prompt:()=>null},require:n=>n==='vue'?{...vue,onMounted:()=>{},onUnmounted:()=>{}}:n.includes('scheduleFilters')?filters.exports:api};
+const script=fs.readFileSync('admin-web/src/App.vue','utf8').split('<script setup lang="ts">')[1].split('</script>')[0];
+vm.runInNewContext(compile(script+'\nexports.test={me,cancelSchedule,switchPage};'),context);
+(async()=>{
+ const app=context.exports.test;
+ app.me.value={userId:'supervisor',roles:['SUPERVISOR']};
+ app.switchPage('performance');await new Promise(resolve=>setImmediate(resolve));assert.ok(calls.some(c=>c.url.includes('/performance/overview')));calls=[];
+ await app.cancelSchedule({id:'test-only',version:0});
+ assert.equal(calls.length,0);
+ console.log('PASS: dismissing cancellation does not write; page switch refreshes');
+ let removed=false,reloaded=false;
+ const client={exports:{},localStorage:{getItem:()=> 'mock-token',removeItem:()=>removed=true},window:{location:{reload:()=>reloaded=true}},fetch:async()=>({status:401,ok:false,json:async()=>{throw new SyntaxError('Unexpected token <')}})};
+ vm.runInNewContext(compile(fs.readFileSync('admin-web/src/api/client.ts','utf8')),client);
+ await assert.rejects(()=>client.exports.apiGet('/me'),/登录已失效/);
+ assert.equal(removed,true);assert.equal(reloaded,true);
+ console.log('PASS: non-JSON 401 clears session and shows readable error');
+})().catch(e=>{console.error(e);process.exitCode=1});

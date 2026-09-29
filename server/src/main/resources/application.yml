@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: engineering-score-server
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+logging:
+  pattern:
+    level: "%5p [request_id:%X{requestId:-}]"
+wechat:
+  app-id: ${WECHAT_APP_ID}
+  app-secret: ${WECHAT_APP_SECRET}
+  subscribe-template-id: ${WECHAT_SUBSCRIBE_TEMPLATE_ID:}
+  subscribe-title-key: ${WECHAT_SUBSCRIBE_TITLE_KEY:thing1}
+  subscribe-content-key: ${WECHAT_SUBSCRIBE_CONTENT_KEY:thing2}
+  subscribe-time-key: ${WECHAT_SUBSCRIBE_TIME_KEY:time3}
+  miniprogram-state: ${WECHAT_MINIPROGRAM_STATE:formal}
+admin:
+  bootstrap-token: ${ADMIN_BOOTSTRAP_TOKEN:}
+review:
+  account:
+    password: ${REVIEW_ACCOUNT_PASSWORD:}
+object-storage:
+  endpoint: ${OBJECT_STORAGE_ENDPOINT}
+  access-key: ${OBJECT_STORAGE_ACCESS_KEY}
+  secret-key: ${OBJECT_STORAGE_SECRET_KEY}
+  bucket: ${OBJECT_STORAGE_BUCKET:engineering-score-evidence}

@@ -1,0 +1,38 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const storage = new Map();
+const app = {globalData:{accessToken:'',subscriptionTemplateIds:[],subscriptionRemembered:false}};
+let page, calls=[], failLogout=false, nativeCalls=0, destination='';
+global.getApp=()=>app;
+global.wx={getStorageSync:k=>storage.get(k),setStorageSync:(k,v)=>storage.set(k,v),removeStorageSync:k=>storage.delete(k),reLaunch:o=>destination=o.url,showToast:()=>{},getSetting:o=>o.success({subscriptionsSetting:{itemSettings:{template:'accept'}}}),requestSubscribeMessage:()=>{nativeCalls++}};
+global.Page=p=>{page=p;p.setData=data=>Object.assign(p.data,data)};
+const requestPath=path.resolve(__dirname,'../miniprogram/utils/request.js');
+require.cache[requestPath]={id:requestPath,filename:requestPath,loaded:true,exports:{request:async(url,method,data)=>{
+ calls.push({url,method,data});
+ if(url==='/auth/account/login')return {accessToken:'test-token'};
+ if(url==='/me')return {employeeNo:'TEST',displayName:'测试',roles:['TECHNICIAN'],wechatBound:true,passwordChangeRequired:false};
+ if(url==='/notifications/subscription-config')return {enabled:true,eligible:true,templateIds:['template'],permissionStatus:'EXHAUSTED',credits:0};
+ if(url==='/auth/logout'&&failLogout)throw Error('offline');
+}}};
+require('../miniprogram/pages/profile/index.js');
+const sub=require('../miniprogram/utils/subscription.js');
+(async()=>{
+ page.setData({username:'TEST',password:'testpass123'});
+ await page.accountLogin();
+ assert.equal(calls[0].url,'/auth/account/login');
+ assert.equal(calls[0].data.clientType,'MINIPROGRAM');
+ assert.equal(app.globalData.accessToken,'test-token');
+ assert.equal(page.data.subscriptionEligible,false);
+ assert.equal(page.data.password,'');
+ assert.equal(destination,'/pages/home/index');
+ assert.equal(calls.some(c=>c.url.includes('/wechat/')),false);
+ await sub.refreshSubscriptionHarvesting();await sub.collectSubscriptionCredit();
+ assert.equal(nativeCalls,0);
+ storage.set('login_method','wechat');
+ await sub.refreshSubscriptionHarvesting();assert.equal(app.globalData.subscriptionRemembered,true);
+ failLogout=true;page.setData({loading:false});await page.switchAccount();
+ assert.equal(app.globalData.accessToken,'');assert.equal(app.globalData.subscriptionRemembered,false);
+ assert.equal(destination,'/pages/profile/index');assert.equal(page.data.user,null);
+ assert.equal(storage.has('access_token'),false);
+ console.log('PASS: password login, no implicit binding, subscription isolation, exhausted refresh, offline account switch');
+})().catch(e=>{console.error(e);process.exitCode=1});

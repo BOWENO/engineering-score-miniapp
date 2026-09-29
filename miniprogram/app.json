@@ -1,0 +1,25 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/score/index",
+    "pages/schedule/index",
+    "pages/incidents/index",
+    "pages/profile/index",
+    "pages/performance-form/index",
+    "pages/incident-detail/index",
+    "pages/messages/index"
+  ],
+  "window": { "navigationBarTitleText": "测试工程部积分绩效", "navigationBarBackgroundColor": "#087F7A", "navigationBarTextStyle": "white", "backgroundColor": "#F3F7F7", "backgroundTextStyle": "dark" },
+  "tabBar": {
+    "color": "#7A8A8B", "selectedColor": "#087F7A", "backgroundColor": "#FFFFFF", "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/home/index", "text": "工作台" },
+      { "pagePath": "pages/score/index", "text": "积分" },
+      { "pagePath": "pages/schedule/index", "text": "排班" },
+      { "pagePath": "pages/incidents/index", "text": "异常" },
+      { "pagePath": "pages/profile/index", "text": "我的" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

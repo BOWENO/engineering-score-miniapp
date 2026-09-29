@@ -1,0 +1,22 @@
+<view class="page"><view wx:if="{{targetNotice}}" class="card">{{targetNotice}}</view>
+  <view class="toolbar card"><picker mode="date" value="{{from}}" bindchange="fromChange"><view>{{from}}</view></picker><text>至</text><picker mode="date" value="{{to}}" bindchange="toChange"><view>{{to}}</view></picker><button wx:if="{{canEdit}}" class="add" bindtap="toggleEditor">{{showEditor ? '收起' : '+ 排班'}}</button></view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view wx:if="{{showEditor}}" class="card editor">
+    <view class="title">新增责任排班</view>
+    <view class="field"><text>人员</text><picker range="{{people}}" range-key="name" value="{{personIndex}}" bindchange="personChange"><view class="picker">{{people[personIndex].name || '请选择'}} ›</view></picker></view>
+    <view class="double"><view class="field"><text>开始日期</text><picker mode="date" value="{{editFrom}}" bindchange="editFromChange"><view class="picker">{{editFrom}}</view></picker></view><view class="field"><text>结束日期</text><picker mode="date" value="{{editTo}}" bindchange="editToChange"><view class="picker">{{editTo}}</view></picker></view></view>
+    <view class="field"><text>班次</text><picker range="{{shifts}}" range-key="name" value="{{shiftIndex}}" bindchange="shiftChange"><view class="picker">{{shifts[shiftIndex].name || '请选择'}} ›</view></picker></view>
+    <view class="field"><text>线体</text><picker range="{{lines}}" range-key="name" value="{{lineIndex}}" bindchange="lineChange"><view class="picker">{{lines[lineIndex].name || '请选择'}} ›</view></picker></view>
+    <view class="field"><text>站位</text><picker range="{{filteredStations}}" range-key="name" value="{{stationIndex}}" bindchange="stationChange"><view class="picker">{{filteredStations[stationIndex].name || '请选择'}} ›</view></picker></view>
+    <view class="publish-row"><view><strong>直接发布</strong><text>发布即生效，通知责任人，无需确认</text></view><switch checked="{{publish}}" color="#087f7a" bindchange="publishChange" /></view>
+    <view wx:if="{{!loading && catalogReady && !filteredStations.length}}" class="error">当前线体暂无可用站位，请切换线体或联系管理员配置。</view>
+    <button class="primary" loading="{{saving}}" disabled="{{saving || loading || !catalogReady || !canEdit || !filteredStations.length}}" bindtap="save">保存排班</button>
+  </view>
+  <view wx:if="{{loading && !items.length}}" class="card empty">排班加载中...</view>
+  <view wx:elif="{{!items.length}}" class="card empty">当前日期范围内暂无排班</view>
+  <view wx:for="{{items}}" wx:key="id" id="schedule-{{item.id}}" class="assignment">
+    <view class="assignment-top"><view><strong>{{item.businessDate}} · {{item.shiftCode === 'NIGHT' ? '夜班' : '白班'}}</strong><text class="status {{item.status}}">{{item.status === 'PUBLISHED' ? '已发布' : item.status === 'DRAFT' ? '草稿' : '已取消'}}</text></view><text wx:if="{{canEdit}}" class="person">{{item.displayName}}</text></view>
+    <view class="place">{{item.lineName}} <text>→</text> {{item.stationName}}</view>
+    <view class="actions"><text wx:if="{{item.status === 'PUBLISHED'}}">已自动确认，无需操作</text><button wx:if="{{canEdit && item.status !== 'CANCELLED'}}" class="cancel" data-id="{{item.id}}" data-version="{{item.version}}" bindtap="cancel">取消/纠正</button></view>
+  </view>
+</view>

@@ -1,0 +1,18 @@
+<view class="page">
+  <view class="head-row"><view class="tabs"><view wx:for="{{tabs}}" wx:key="key" class="{{tab === item.key ? 'active' : ''}}" data-key="{{item.key}}" bindtap="switchTab">{{item.name}}</view></view><button wx:if="{{canCreate}}" class="create-button" bindtap="toggleCreate">{{showCreate ? '收起' : '+ 登记'}}</button></view>
+  <view wx:if="{{tab === 'review'}}" class="card"><button bindtap="toggleOverdue">{{overdueOnly ? '仅看逾期说明 · 点击查看全部' : '查看逾期说明'}}</button><view wx:if="{{overdueOnly && !loading && !error}}">{{overdueCount}} 份逾期说明，涉及 {{items.length}} 起异常</view></view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view wx:if="{{showCreate}}" class="card create-form"><view class="title">登记设备异常</view><view class="tip">异常登记后将按照已发布排班自动匹配责任人。</view>
+    <view class="double"><view class="field"><text>发生日期</text><picker mode="date" value="{{occurredDate}}" bindchange="dateChange"><view>{{occurredDate}}</view></picker></view><view class="field"><text>发生时间</text><picker mode="time" value="{{occurredTime}}" bindchange="timeChange"><view>{{occurredTime}}</view></picker></view></view>
+    <view class="field"><text>线体</text><picker range="{{lines}}" range-key="name" value="{{lineIndex}}" bindchange="lineChange"><view>{{lines[lineIndex].name || '请选择'}} ›</view></picker></view>
+    <view class="field"><text>站位</text><picker range="{{filteredStations}}" range-key="name" value="{{stationIndex}}" bindchange="stationChange"><view>{{filteredStations[stationIndex].name || '请选择'}} ›</view></picker></view>
+    <view class="field"><text>发生设备（可多选）</text><checkbox-group bindchange="equipmentChange"><label wx:for="{{filteredEquipment}}" wx:key="id" class="equipment-option"><checkbox value="{{item.id}}" color="#087f7a"/><view><strong>{{item.name}}</strong><text>{{item.code}}</text></view></label></checkbox-group><view wx:if="{{!filteredEquipment.length}}" class="mini-empty">该站位暂无启用设备</view></view>
+    <button class="primary" loading="{{saving}}" disabled="{{saving}}" bindtap="create">创建并通知责任人</button>
+  </view>
+  <view wx:if="{{loading && !items.length}}" class="card empty">正在加载...</view><view wx:elif="{{!error && !items.length}}" class="card empty">当前没有相关异常</view>
+  <view wx:for="{{items}}" wx:key="id" class="incident-card" data-id="{{item.id}}" bindtap="open">
+    <view class="card-head"><text class="no">{{item.incidentNo}}</text><text class="state {{item.status}}">{{item.status === 'ARCHIVED' ? '已归档' : item.status === 'VOID' ? '已作废' : item.status === 'UNDER_REVIEW' ? '审核中' : item.status === 'RETURNED' ? '已退回' : '待处理'}}</text></view>
+    <view class="place">{{item.lineName}} · {{item.stationName}}</view><view class="device">{{item.devicesText}}</view>
+    <view class="meta"><text>{{item.businessDate}}</text><text>责任人：{{item.responsibleText}}</text></view><text class="arrow">›</text>
+  </view>
+</view>

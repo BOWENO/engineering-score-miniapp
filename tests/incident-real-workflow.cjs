@@ -1,0 +1,45 @@
+// Disposable end-to-end HTTP workflow; requires FullStackAcceptanceTest's live local database.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{randomUUID}=require('node:crypto');
+const base=fs.readFileSync(path.join(__dirname,'../server/target/acceptance-api-url.txt'),'utf8');
+if(new URL(base).hostname!=='127.0.0.1')throw Error('Only local acceptance backend allowed');
+const tokens={};let count=0;
+async function api(role,method,url,body,expected=200){count++;const r=await fetch(base+url,{method,headers:{'Content-Type':'application/json','Idempotency-Key':randomUUID(),...(tokens[role]?{Authorization:'Bearer '+tokens[role]}:{})},body:method==='GET'?undefined:JSON.stringify(body)});const json=await r.json();assert.equal(r.status,expected,`${method} ${url}: ${JSON.stringify(json)}`);return json.data;}
+(async()=>{
+for(const role of ['ADMINISTRATOR','SUPERVISOR','TECHNICIAN'])tokens[role]=(await api(role,'POST','/auth/account/login',{username:role,password:'Acceptance2026!',clientType:'MINIPROGRAM'})).accessToken;
+const admin=await api('ADMINISTRATOR','GET','/me'),tech=await api('TECHNICIAN','GET','/me');
+const tag=Date.now().toString();
+const team=await api('ADMINISTRATOR','POST','/admin/organizations',{parentId:admin.orgUnitId,type:'TEAM',name:'临时流程测试班组'+tag});
+await api('ADMINISTRATOR','PUT','/admin/users/'+tech.userId,{displayName:'TECHNICIAN',orgUnitId:team.id,status:'ACTIVE'});
+const line=await api('ADMINISTRATOR','POST','/admin/catalog/lines',{teamId:team.id,code:'QA'+tag,name:'临时测试线'});
+const station=await api('ADMINISTRATOR','POST','/admin/catalog/stations',{lineId:line.id,code:'QA'+tag,name:'临时测试站'});
+const device=await api('ADMINISTRATOR','POST','/admin/equipment',{code:'QA'+tag,name:'临时测试设备',category:'TEST',orgUnitId:team.id,lineId:line.id,stationId:station.id});
+await api('ADMINISTRATOR','POST','/admin/catalog/shifts',{code:'QA'+tag,name:'临时测试班次',startsAt:'00:00',endsAt:'23:59',effectiveFrom:'2020-01-01'});
+const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+await api('SUPERVISOR','POST','/schedules/batch',{from:date,to:date,shiftCode:'QA'+tag,userIds:[tech.userId],lineId:line.id,stationIds:[station.id],publish:true,reason:'仅临时数据库的验收排班'});
+console.log('PASS organization, equipment catalog, shift and published schedule through real HTTP');
+let incident=await api('SUPERVISOR','POST','/incidents',{occurredAt:new Date().toISOString(),lineId:line.id,stationId:station.id,equipmentIds:[device.id]});
+const prefix='/incidents/'+incident.id;
+assert.equal(incident.status,'WAITING_STATEMENTS');assert.equal(incident.statements.length,1);
+let dossier=await api('SUPERVISOR','GET',prefix+'/dossier');
+await api('SUPERVISOR','POST',prefix+'/dossier/archive',{version:dossier.version},409);
+incident=await api('TECHNICIAN','PUT',prefix+'/statement',{version:incident.statements[0].version,phenomenon:'隔离测试异常',handlingMethod:'隔离测试处理',rootCause:'隔离测试原因',longTermAction:'隔离测试改进'});
+incident=await api('SUPERVISOR','POST','/incidents/statements/'+incident.statements[0].id+'/review',{version:incident.statements[0].version,decision:'APPROVE',comment:'隔离测试审核'});
+assert.equal(incident.status,'INVESTIGATING');
+dossier=await api('SUPERVISOR','GET',prefix+'/dossier');
+dossier=await api('SUPERVISOR','PUT',prefix+'/dossier/metadata',{version:dossier.version,severity:'GENERAL',categoryCode:'TEST',impactLevel:'LOW',downtimeMinutes:1,impactDescription:'隔离测试',performanceRequired:false});
+dossier=await api('SUPERVISOR','PUT',prefix+'/dossier/investigation',{mode:'SIMPLE',directCause:'测试直接原因',rootCause:'测试根因',rootCauseCategory:'TEST',fiveWhys:[],conclusion:'测试调查结论'});
+dossier=await api('SUPERVISOR','POST',prefix+'/dossier/investigation/confirm',{version:dossier.investigation.version});
+assert.equal(dossier.status,'RESPONSIBILITY_PENDING');
+dossier=await api('SUPERVISOR','POST',prefix+'/dossier/responsibilities',{responsibleUserId:tech.userId,responsibleOrgId:team.id,responsibilityType:'PRIMARY',responsibilityPercent:100,basis:'测试责任依据',proposedAction:'测试整改'});
+dossier=await api('SUPERVISOR','POST',prefix+'/dossier/actions',{actionType:'CORRECTIVE',content:'测试整改措施',ownerId:tech.userId,dueAt:new Date(Date.now()+86400000).toISOString()});
+let action=dossier.actions[0];
+dossier=await api('TECHNICIAN','POST','/incidents/dossier/actions/'+action.id+'/complete',{version:action.version,note:'测试已完成'});
+action=dossier.actions[0];
+dossier=await api('SUPERVISOR','POST','/incidents/dossier/actions/'+action.id+'/accept',{version:action.version,decision:'ACCEPTED',comment:'测试验收通过'});
+assert.equal(dossier.archiveReadiness.ready,true,JSON.stringify(dossier.archiveReadiness));
+dossier=await api('SUPERVISOR','POST',prefix+'/dossier/archive',{version:dossier.version});assert.equal(dossier.status,'ARCHIVED');
+const archive=await api('SUPERVISOR','GET','/incidents/archive');assert.ok(archive.some(i=>i.id===incident.id));
+dossier=await api('SUPERVISOR','POST',prefix+'/dossier/reopen',{version:dossier.version,reason:'隔离测试重新打开'});assert.notEqual(dossier.status,'ARCHIVED');
+console.log('PASS incident creation, premature archive rejection, statement, review, investigation, responsibility, correction, acceptance, archive and reopen');
+console.log(JSON.stringify({requests:count,incidentId:incident.id,finalStatus:dossier.status,eventCount:dossier.events.length}));
+})().catch(e=>{console.error(e);process.exitCode=1;});

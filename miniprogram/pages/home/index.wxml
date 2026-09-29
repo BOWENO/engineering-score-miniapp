@@ -1,0 +1,71 @@
+<view class="page home-page">
+  <view class="top-row">
+    <view><text class="greeting">{{greeting}}，{{name}}</text><view class="identity">{{employeeNo}} · {{roleName}}</view></view>
+    <view class="message-button" bindtap="goMessages">消息<text wx:if="{{pending.unreadMessages}}" class="message-dot">{{pending.unreadMessages}}</text></view>
+  </view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view wx:if="{{subscriptionPrompt}}" class="notification-banner">
+    <view><strong>开启微信通知</strong><text>有新待办、异常或绩效消息时及时提醒你</text></view>
+    <button bindtap="enableWechatNotification">立即开启</button>
+  </view>
+
+  <view wx:if="{{scored && score}}" class="score-hero" bindtap="goScore">
+    <view class="hero-head"><text>本月绩效</text><text class="hero-link">查看明细 ›</text></view>
+    <view class="hero-main"><view><text class="average">{{score.averageScore}}</text><text class="unit"> 平均分</text></view><view class="rank"><text>我的排名</text><strong>{{score.rank || '--'}}</strong></view></view>
+    <view class="score-parts"><text>总分 {{score.total}}</text><text>基础 {{score.base}}</text><text>加分 +{{score.bonus}}</text><text>扣分 {{score.penalty}}</text></view>
+    <view class="grade" wx:if="{{score.finalGrade}}">本月已封存 · 等级 {{score.finalGrade}}</view>
+  </view>
+
+  <view wx:if="{{management}}" class="management-hero">
+    <view><text class="eyebrow">测试工程部</text><text class="management-title">今日管理工作台</text></view>
+    <view class="pending-grid">
+      <view bindtap="goReviews"><strong>{{pending.performanceReviews || 0}}</strong><text>积分待审</text></view>
+      <view bindtap="goReviews"><strong>{{pending.appeals || 0}}</strong><text>申诉待审</text></view>
+      <view bindtap="goIncidentReviews"><strong>{{pending.incidentReviews || 0}}</strong><text>异常待审</text></view>
+      <view bindtap="goOverdueIncidents" class="warn"><strong>{{pending.overdueIncidents || 0}}</strong><text>逾期说明</text></view>
+    </view>
+  </view>
+
+  <view wx:if="{{pending.ownIncidentStatements || pending.returnedCases}}" class="urgent-card" bindtap="goIncidents">
+    <view class="urgent-icon">!</view><view class="urgent-content"><strong>有事项需要处理</strong><text>异常说明 {{pending.ownIncidentStatements || 0}} 条 · 退回申请 {{pending.returnedCases || 0}} 条</text></view><text>›</text>
+  </view>
+
+  <view class="section-title"><text>快捷操作</text></view>
+  <view class="quick-grid">
+    <view wx:if="{{scored}}" bindtap="goBonus"><text class="quick-icon teal">＋</text><text>申请加分</text></view>
+    <view bindtap="goSchedule"><text class="quick-icon blue">日</text><text>查看排班</text></view>
+    <view bindtap="goIncidents"><text class="quick-icon amber">异</text><text>设备异常</text></view>
+    <view wx:if="{{management}}" bindtap="goDeduction"><text class="quick-icon red">−</text><text>发起扣分</text></view>
+    <view wx:if="{{management}}" bindtap="goReviews"><text class="quick-icon purple">审</text><text>审核中心</text></view>
+    <view bindtap="goMessages"><text class="quick-icon slate">信</text><text>消息中心</text></view>
+  </view>
+
+  <view class="section-title"><text>当前责任排班</text><text class="section-link" bindtap="goSchedule">全部 ›</text></view>
+  <view wx:if="{{!schedules.length}}" class="card empty">近期没有已发布排班</view>
+  <view wx:for="{{schedules}}" wx:key="id" class="schedule-card">
+    <view class="date-block"><strong>{{item.displayDate}}</strong><text>{{item.shiftCode === 'NIGHT' ? '夜班' : '白班'}}</text></view>
+    <view class="schedule-info"><strong>{{item.lineName}} · {{item.stationName}}</strong><text>当班设备问题责任排班</text></view>
+    <text class="known">已自动确认，无需操作</text>
+  </view>
+
+  <block wx:if="{{management && hotEquipment.length}}"><view class="section-title"><text>近30天高发设备</text></view>
+    <view class="card hot-list"><view wx:for="{{hotEquipment}}" wx:key="id" class="hot-row"><text class="hot-rank">{{index + 1}}</text><view><strong>{{item.name}}</strong><text>{{item.code}}</text></view><text class="hot-count">{{item.incidents}} 次</text></view></view>
+  </block>
+  <view class="publicity-card">
+    <view class="publicity-heading"><view><view class="publicity-eyebrow"><text class="publicity-dot"></text>每日公示</view><text class="publicity-title">{{!publicityDate || publicityDate===publicityToday ? '今日扣分公示' : '每日扣分公示'}}</text></view><picker mode="date" value="{{publicityDate || publicity.date}}" end="{{publicityToday}}" bindchange="publicityDateChange"><view class="publicity-date">{{publicity.date || '选择日期'}}<text>⌄</text></view></picker></view>
+    <view class="publicity-caption">技术员 · 助理工程师<text wx:if="{{publicity.scopeName}}"> / {{publicity.scopeName}}</text></view>
+    <view wx:if="{{publicityError}}" class="publicity-state"><text>公示暂时无法更新</text><text class="publicity-error">{{publicityError}}</text><button bindtap="refreshPublicity">重新加载</button></view>
+    <view wx:elif="{{publicityLoading && !publicity}}" class="publicity-state"><text>正在加载当日公示…</text></view>
+    <block wx:elif="{{publicity}}">
+      <view class="publicity-summary"><view><text class="publicity-number">{{publicity.total}}</text><text>项扣分</text></view><view><text class="publicity-number">{{publicity.people}}</text><text>位人员</text></view><view class="publicity-total"><text class="publicity-number">{{publicity.totalScore > 0 ? '−' : ''}}{{publicity.totalScore}}</text><text>实际扣分</text></view></view>
+      <view wx:if="{{!publicity.total}}" class="publicity-empty"><text class="publicity-empty-mark">—</text><view><text>当日暂无已生效扣分</text><text class="publicity-empty-note">审核通过并计分后，将在这里公示</text></view></view>
+      <view wx:for="{{publicity.items}}" wx:key="id" class="publicity-item" data-id="{{item.id}}" bindtap="showPublicDeduction">
+        <view class="publicity-item-head"><view class="publicity-person"><text class="publicity-name">{{item.displayName}}</text><text class="publicity-role">{{item.roleName}}</text></view><view class="publicity-score">−{{item.score}}<text>分</text></view></view>
+        <text class="publicity-description">{{item.description}}</text>
+        <view class="publicity-meta"><text>{{item.category}} · {{item.effectiveTime}} 生效</text><text wx:if="{{item.underAppeal}}" class="publicity-appeal">申诉处理中</text><text wx:else>查看事项 ›</text></view>
+      </view>
+      <button wx:if="{{publicity.hasMore}}" class="publicity-more" loading="{{publicityLoading}}" disabled="{{publicityLoading}}" bindtap="morePublicity">展开更多（已展示 {{publicity.items.length}} / {{publicity.total}}）</button>
+    </block>
+    <view class="publicity-foot"><text>{{liveConnected ? "变动自动更新" : "自动更新连接中"}} · 按生效日公示 · 已撤销事项不展示</text><button bindtap="refreshPublicity" disabled="{{publicityLoading}}">{{publicityLoading ? '更新中' : '刷新'}}</button></view>
+  </view>
+</view>

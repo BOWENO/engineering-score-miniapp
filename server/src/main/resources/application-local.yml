@@ -1,0 +1,18 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/engineering_score}
+    username: ${DB_USERNAME:engineering_score}
+    password: ${DB_PASSWORD:local-password}
+  jpa:
+    show-sql: false
+wechat:
+  app-id: ${WECHAT_APP_ID:}
+  app-secret: ${WECHAT_APP_SECRET:local-placeholder-not-used-by-dev-login}
+object-storage:
+  endpoint: ${OBJECT_STORAGE_ENDPOINT:http://localhost:9000}
+  access-key: ${OBJECT_STORAGE_ACCESS_KEY:local-access-key}
+  secret-key: ${OBJECT_STORAGE_SECRET_KEY:local-secret-key}
+  bucket: ${OBJECT_STORAGE_BUCKET:engineering-score-evidence}

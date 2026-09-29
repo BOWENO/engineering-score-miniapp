@@ -1,0 +1,7 @@
+CREATE TABLE admin_credential (
+    user_id UUID PRIMARY KEY REFERENCES app_user(id),
+    username VARCHAR(64) NOT NULL UNIQUE,
+    password_hash VARCHAR(512) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

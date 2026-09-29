@@ -1,0 +1,18 @@
+page { background: #f3f7f7; color: #172b2b; font-size: 28rpx; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.page { padding: 24rpx 28rpx 48rpx; box-sizing: border-box; }
+.card { background: rgba(255,255,255,.98); border-radius: 28rpx; padding: 28rpx; margin-bottom: 24rpx; box-shadow: 0 12rpx 36rpx rgba(22,74,72,.07); }
+.section-title { display: flex; align-items: center; justify-content: space-between; font-size: 32rpx; font-weight: 700; margin: 34rpx 4rpx 20rpx; }
+.title { font-size: 34rpx; font-weight: 700; margin-bottom: 20rpx; }
+.muted { color: #718282; }
+.caption { color: #8b9a9a; font-size: 24rpx; }
+.primary { background: linear-gradient(135deg,#0b938b,#08736f); color: #fff; min-height: 84rpx; border-radius: 20rpx; font-weight: 600; box-shadow: 0 10rpx 24rpx rgba(8,127,122,.2); }
+.secondary { background: #e9f5f4; color: #087f7a; min-height: 80rpx; border-radius: 20rpx; font-weight: 600; }
+.danger { color: #d94d4d; background: #fff0f0; }
+.pill { display: inline-flex; align-items: center; padding: 8rpx 16rpx; border-radius: 999rpx; background: #e7f5f3; color: #087f7a; font-size: 23rpx; }
+.badge { min-width: 30rpx; height: 30rpx; line-height: 30rpx; text-align: center; padding: 0 7rpx; border-radius: 999rpx; background: #e75252; color: #fff; font-size: 20rpx; }
+.empty { text-align: center; color: #94a2a2; padding: 54rpx 20rpx; }
+.error { color: #c94747; background: #fff0f0; padding: 20rpx 24rpx; border-radius: 18rpx; margin-bottom: 20rpx; }
+.row { display: flex; align-items: center; justify-content: space-between; }
+.divider { height: 1rpx; background: #edf1f1; margin: 22rpx 0; }
+button::after { border: 0; }
+input, textarea, picker { box-sizing: border-box; }
